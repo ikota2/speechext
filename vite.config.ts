@@ -4,6 +4,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	envPrefix: ['VITE_'],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
