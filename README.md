@@ -3,7 +3,5 @@
 How to launch:
 
 ```
-bun run dev
-
-bunx tauri dev
+bun run dev:tauri
 ```
