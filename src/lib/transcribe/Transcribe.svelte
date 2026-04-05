@@ -13,11 +13,15 @@
     full_text: string;
   };
 
+  let { onsave } = $props<{ onsave: () => void }>();
+
   let files = $state<string[]>([]);
   let progress = $state<{ current: number; total: number; file: string } | null>(null);
   let result = $state<Result | null>(null);
   let error = $state<string | null>(null);
   let loading = $state(false);
+  let saving = $state(false);
+  let saved = $state(false);
 
   let folderPath = $derived(
     files.length > 0
@@ -59,6 +63,7 @@
       result = null;
       error = null;
       progress = null;
+      saved = false;
     }
   }
 
@@ -68,6 +73,7 @@
     error = null;
     result = null;
     progress = null;
+    saved = false;
 
     try {
       const raw = await invoke<string>("transcribe_files", { files });
@@ -82,6 +88,21 @@
     } finally {
       loading = false;
       progress = null;
+    }
+  }
+
+  async function save() {
+    if (!result) return;
+    saving = true;
+    try {
+      const payload = JSON.stringify({ ...result, type: "audio-text" });
+      await invoke<string>("save_result", { payload });
+      saved = true;
+      onsave();
+    } catch (e) {
+      error = String(e);
+    } finally {
+      saving = false;
     }
   }
 </script>
@@ -113,15 +134,19 @@
   {/if}
 
   {#if error}
-    <p>Ошибка: {error}</p>
+    <p>Error: {error}</p>
   {/if}
 
   {#if result}
     <p>
-      Язык: {result.language}
+      Language: {result.language}
       ({(result.language_probability * 100).toFixed(0)}%) —
-      файлов: {result.total_files}
+      files: {result.total_files}
     </p>
     <p>{result.full_text}</p>
+
+    <button onclick={save} disabled={saving || saved}>
+      {saved ? "Saved" : saving ? "Saving..." : "Save"}
+    </button>
   {/if}
 </div>
