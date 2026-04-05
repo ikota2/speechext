@@ -14,6 +14,14 @@ struct ProgressPayload {
     file: String,
 }
 
+#[derive(serde::Serialize)]
+struct ResultMeta {
+    filename: String,
+    created_at: String,
+    result_type: String,
+    title: Option<String>,
+}
+
 fn sort_audio_paths(paths: &mut Vec<String>) {
     paths.sort_by(|a, b| {
         let extract = |s: &str| -> Option<u64> {
@@ -21,7 +29,6 @@ fn sort_audio_paths(paths: &mut Vec<String>) {
                 .file_stem()?
                 .to_str()?
                 .to_string();
-            // если имя файла вида "audio_42" — берём число
             if let Some(n) = name.strip_prefix("audio_") {
                 n.parse().ok()
             } else {
@@ -33,6 +40,15 @@ fn sort_audio_paths(paths: &mut Vec<String>) {
             _ => a.cmp(b),
         }
     });
+}
+
+fn speechext_dir() -> Result<std::path::PathBuf, String> {
+    let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+    let dir = home.join("Speechext");
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    }
+    Ok(dir)
 }
 
 #[tauri::command]
@@ -86,10 +102,103 @@ async fn transcribe_files(files: Vec<String>, window: tauri::Window) -> String {
     }
 }
 
+#[tauri::command]
+fn save_result(payload: String) -> Result<String, String> {
+    let dir = speechext_dir()?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_secs();
+
+    // Format: 2026-04-04T13-30-00Z
+    let secs = now;
+    let s = secs % 60;
+    let m = (secs / 60) % 60;
+    let h = (secs / 3600) % 24;
+    let days = secs / 86400;
+    // Simple date calculation from epoch
+    let (year, month, day) = epoch_days_to_date(days);
+    let filename = format!("{:04}-{:02}-{:02}T{:02}-{:02}-{:02}Z.json", year, month, day, h, m, s);
+
+    let path = dir.join(&filename);
+    std::fs::write(&path, &payload).map_err(|e| e.to_string())?;
+
+    Ok(filename)
+}
+
+#[tauri::command]
+fn list_results() -> Result<Vec<ResultMeta>, String> {
+    let dir = speechext_dir()?;
+
+    let mut entries: Vec<ResultMeta> = std::fs::read_dir(&dir)
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .filter(|e| {
+            e.path().extension().and_then(|x| x.to_str()) == Some("json")
+        })
+        .filter_map(|e| {
+            let filename = e.file_name().to_string_lossy().to_string();
+            let content = std::fs::read_to_string(e.path()).ok()?;
+            let val: serde_json::Value = serde_json::from_str(&content).ok()?;
+            let result_type = val["type"].as_str().unwrap_or("audio-text").to_string();
+            let title = val["title"].as_str().map(|s| s.to_string());
+            // created_at from filename (strip .json)
+            let created_at = filename.trim_end_matches(".json").to_string();
+            Some(ResultMeta { filename, created_at, result_type, title })
+        })
+        .collect();
+
+    // Sort newest first
+    entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+    Ok(entries)
+}
+
+#[tauri::command]
+fn load_result(filename: String) -> Result<String, String> {
+    let dir = speechext_dir()?;
+    let path = dir.join(&filename);
+    std::fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+// Calculate (year, month, day) from days since Unix epoch (1970-01-01)
+fn epoch_days_to_date(days: u64) -> (u64, u64, u64) {
+    let mut remaining = days;
+    let mut year = 1970u64;
+    loop {
+        let days_in_year = if is_leap(year) { 366 } else { 365 };
+        if remaining < days_in_year {
+            break;
+        }
+        remaining -= days_in_year;
+        year += 1;
+    }
+    let months = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mut month = 1u64;
+    for &days_in_month in &months {
+        if remaining < days_in_month {
+            break;
+        }
+        remaining -= days_in_month;
+        month += 1;
+    }
+    (year, month, remaining + 1)
+}
+
+fn is_leap(year: u64) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![transcribe_files])
+        .invoke_handler(tauri::generate_handler![
+            transcribe_files,
+            save_result,
+            list_results,
+            load_result,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
