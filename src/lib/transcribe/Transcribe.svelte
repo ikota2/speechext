@@ -1,71 +1,28 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
-  import { open } from "@tauri-apps/plugin-dialog";
-  import { listen } from "@tauri-apps/api/event";
-  import { onDestroy } from "svelte";
-
-  type Segment = { index: number; file: string; text: string; error?: string };
-  type Result = {
-    language: string;
-    language_probability: number;
-    total_files: number;
-    segments: Segment[];
-    full_text: string;
-  };
-
-  let { onsave } = $props<{ onsave: () => void }>();
+  import { onDestroy } from 'svelte';
+  import { transcribeFiles, listenProgress } from '$lib/services/transcribe.js';
+  import { saveResult } from '$lib/services/history.js';
+  import { historyStore } from '$lib/stores/history.svelte.js';
+  import type { TranscribeResult, ProgressPayload } from '$lib/types.js';
+  import FilePicker from './FilePicker.svelte';
+  import ProgressBar from '$lib/ui/ProgressBar.svelte';
+  import ResultCard from '$lib/ui/ResultCard.svelte';
 
   let files = $state<string[]>([]);
-  let progress = $state<{ current: number; total: number; file: string } | null>(null);
-  let result = $state<Result | null>(null);
+  let progress = $state<ProgressPayload | null>(null);
+  let result = $state<TranscribeResult | null>(null);
   let error = $state<string | null>(null);
   let loading = $state(false);
   let saving = $state(false);
   let saved = $state(false);
 
-  let folderPath = $derived(
-    files.length > 0
-      ? files[0].substring(0, files[0].lastIndexOf("/"))
-      : null
-  );
-
-  let sortedNames = $derived(
-    [...files]
-      .sort((a, b) => {
-        const num = (s: string) => {
-          const name = s.split("/").pop() ?? "";
-          const match = name.match(/^audio_(\d+)\.ogg$/);
-          return match ? parseInt(match[1]) : Infinity;
-        };
-        return num(a) - num(b);
-      })
-      .map((f) => f.split("/").pop() ?? f)
-  );
-
-  const unlisten = listen<{ current: number; total: number; file: string }>(
-    "transcribe-progress",
-    (event) => {
-      progress = event.payload;
-    }
-  );
+  const unlisten = listenProgress((payload) => {
+    progress = payload;
+  });
 
   onDestroy(async () => {
     (await unlisten)();
   });
-
-  async function pickFiles() {
-    const selected = await open({
-      multiple: true,
-      filters: [{ name: "Audio", extensions: ["ogg", "wav", "mp3", "m4a", "flac"] }],
-    });
-    if (Array.isArray(selected) && selected.length > 0) {
-      files = selected;
-      result = null;
-      error = null;
-      progress = null;
-      saved = false;
-    }
-  }
 
   async function transcribe() {
     if (files.length === 0) return;
@@ -76,13 +33,7 @@
     saved = false;
 
     try {
-      const raw = await invoke<string>("transcribe_files", { files });
-      const parsed = JSON.parse(raw);
-      if (parsed.error) {
-        error = parsed.error;
-      } else {
-        result = parsed;
-      }
+      result = await transcribeFiles(files);
     } catch (e) {
       error = String(e);
     } finally {
@@ -95,10 +46,9 @@
     if (!result) return;
     saving = true;
     try {
-      const payload = JSON.stringify({ ...result, type: "audio-text" });
-      await invoke<string>("save_result", { payload });
+      await saveResult({ ...result, type: 'audio-text' });
       saved = true;
-      onsave();
+      await historyStore.refresh();
     } catch (e) {
       error = String(e);
     } finally {
@@ -108,29 +58,16 @@
 </script>
 
 <div>
-  <div>
-    <button onclick={pickFiles} class="button">Choose path</button>
-    {#if folderPath}
-      <span>{folderPath}</span>
-    {/if}
-  </div>
+  <FilePicker bind:files onchange={() => { result = null; error = null; saved = false; }} />
 
   {#if files.length > 0}
-    <p>Selected files: {files.length}</p>
-    <ul>
-      {#each sortedNames as name}
-        <li>{name}</li>
-      {/each}
-    </ul>
-
     <button onclick={transcribe} disabled={loading}>
-      {loading ? "Transcribing..." : "Transcribe"}
+      {loading ? 'Transcribing...' : 'Transcribe'}
     </button>
   {/if}
 
   {#if progress}
-    <p>{progress.current} / {progress.total} — {progress.file}</p>
-    <progress value={progress.current} max={progress.total}></progress>
+    <ProgressBar current={progress.current} total={progress.total} label={progress.file} />
   {/if}
 
   {#if error}
@@ -138,20 +75,14 @@
   {/if}
 
   {#if result}
-    <p>
-      Language: {result.language}
-      ({(result.language_probability * 100).toFixed(0)}%) —
-      files: {result.total_files}
-    </p>
-    <p>{result.full_text}</p>
-
-    <button onclick={save} disabled={saving || saved} class="button">
-      {saved ? "Saved" : saving ? "Saving..." : "Save"}
-    </button>
+    <ResultCard
+        text={result.full_text}
+        language={result.language}
+        languageProbability={result.language_probability}
+        totalFiles={result.total_files}
+        onsave={save}
+        {saving}
+        {saved}
+    />
   {/if}
 </div>
-<style>
-  .button {
-    font-size: 16px;
-  }
-</style>
