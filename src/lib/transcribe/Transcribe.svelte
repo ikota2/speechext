@@ -109,7 +109,7 @@
 
 <div>
   <div>
-    <button onclick={pickFiles}>Choose path</button>
+    <button onclick={pickFiles} class="button">Choose path</button>
     {#if folderPath}
       <span>{folderPath}</span>
     {/if}
@@ -145,8 +145,13 @@
     </p>
     <p>{result.full_text}</p>
 
-    <button onclick={save} disabled={saving || saved}>
+    <button onclick={save} disabled={saving || saved} class="button">
       {saved ? "Saved" : saving ? "Saving..." : "Save"}
     </button>
   {/if}
 </div>
+<style>
+  .button {
+    font-size: 16px;
+  }
+</style>

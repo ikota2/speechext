@@ -12,15 +12,15 @@
   class="button"
   title="Record"
 ></button>
-<p>Status: {status}</p>
+<!--<p>Status: {status}</p>-->
 
 <style>
-.button {
-	width: 100px;
-	height: 100px;
-  border-radius: 50%;
-  border: none;
-	background-color: darkred;
-	cursor: pointer;
-}
+  .button {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: none;
+    background-color: darkred;
+    cursor: pointer;
+  }
 </style>

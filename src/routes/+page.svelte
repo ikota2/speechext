@@ -17,17 +17,34 @@ let selected = $state<FullResult | null>(null);
 </script>
 
 
-{#if selected}
-  <p>{selected.full_text}</p>
-{/if}
-
-<Transcribe onsave={() => history?.refresh()} />
-<History bind:this={history} onselect={(r) => (selected = r)} />
-<Record />
+<div class="wrapper">
+  <main>
+    <div class="controls">
+      <Transcribe onsave={() => history?.refresh()} />
+      <Record />
+    </div>
+    <div class="result">
+      {#if selected}
+        <p>{selected.full_text}</p>
+      {/if}
+    </div>
+  </main>
+  <aside>
+    <History bind:this={history} onselect={(r) => (selected = r)} />
+  </aside>
+</div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
-	}
+  .wrapper {
+		background-color: #e5eff2;
+		height: 100dvh;
+		width: 100vw;
+		display: grid;
+		grid-template-columns: 3fr 1fr;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+  }
 </style>
