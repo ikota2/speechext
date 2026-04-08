@@ -1,17 +1,23 @@
 <script lang="ts">
-import Record from '$lib/record/Record.svelte';
-import Transcribe from '$lib/transcribe/Transcribe.svelte';
+  import Transcribe from '$lib/transcribe/Transcribe.svelte';
+  import Record from '$lib/record/Record.svelte';
+  import { selectedStore } from '$lib/stores/selected.svelte.js';
 </script>
 
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<div class="controls">
+  <Transcribe />
+  <Record />
+</div>
 
-<Transcribe />
-<Record />
+{#if selectedStore.result}
+  <div class="result">
+    <p>{selectedStore.result.full_text}</p>
+  </div>
+{/if}
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
+	.controls {
+		display: flex;
+		gap: 10px;
 	}
 </style>
