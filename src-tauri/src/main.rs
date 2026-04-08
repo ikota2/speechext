@@ -52,7 +52,7 @@ fn speechext_dir() -> Result<std::path::PathBuf, String> {
 }
 
 #[tauri::command]
-async fn transcribe_files(files: Vec<String>, window: tauri::Window) -> String {
+async fn transcribe_files(window: tauri::Window, files: Vec<String>, language: String) -> String {
     let mut sorted_files = files.clone();
     sort_audio_paths(&mut sorted_files);
 
@@ -61,6 +61,8 @@ async fn transcribe_files(files: Vec<String>, window: tauri::Window) -> String {
 
     let mut cmd = Command::new("/Users/alligator/Documents/education/projects/2026/speechext/.venv/bin/python3");
     cmd.arg(script);
+    cmd.arg("--lang");
+    cmd.arg(&language);
     for f in &sorted_files {
         cmd.arg(f);
     }
@@ -111,13 +113,11 @@ fn save_result(payload: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?
         .as_secs();
 
-    // Format: 2026-04-04T13-30-00Z
     let secs = now;
     let s = secs % 60;
     let m = (secs / 60) % 60;
     let h = (secs / 3600) % 24;
     let days = secs / 86400;
-    // Simple date calculation from epoch
     let (year, month, day) = epoch_days_to_date(days);
     let filename = format!("{:04}-{:02}-{:02}T{:02}-{:02}-{:02}Z.json", year, month, day, h, m, s);
 
@@ -143,13 +143,11 @@ fn list_results() -> Result<Vec<ResultMeta>, String> {
             let val: serde_json::Value = serde_json::from_str(&content).ok()?;
             let result_type = val["type"].as_str().unwrap_or("audio-text").to_string();
             let title = val["title"].as_str().map(|s| s.to_string());
-            // created_at from filename (strip .json)
             let created_at = filename.trim_end_matches(".json").to_string();
             Some(ResultMeta { filename, created_at, result_type, title })
         })
         .collect();
 
-    // Sort newest first
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
     Ok(entries)
@@ -162,7 +160,6 @@ fn load_result(filename: String) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
-// Calculate (year, month, day) from days since Unix epoch (1970-01-01)
 fn epoch_days_to_date(days: u64) -> (u64, u64, u64) {
     let mut remaining = days;
     let mut year = 1970u64;

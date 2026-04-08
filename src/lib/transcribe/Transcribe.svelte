@@ -9,6 +9,7 @@
   import ResultCard from '$lib/ui/ResultCard.svelte';
 
   let files = $state<string[]>([]);
+  let language = $state('en');
   let progress = $state<ProgressPayload | null>(null);
   let result = $state<TranscribeResult | null>(null);
   let error = $state<string | null>(null);
@@ -33,7 +34,7 @@
     saved = false;
 
     try {
-      result = await transcribeFiles(files);
+      result = await transcribeFiles(files, language);
     } catch (e) {
       error = String(e);
     } finally {
@@ -59,6 +60,12 @@
 
 <div>
   <FilePicker bind:files onchange={() => { result = null; error = null; saved = false; }} />
+
+  <select bind:value={language}>
+    <option value="en">English</option>
+    <option value="es">Spanish</option>
+    <option value="ru">Russian</option>
+  </select>
 
   {#if files.length > 0}
     <button onclick={transcribe} disabled={loading}>
