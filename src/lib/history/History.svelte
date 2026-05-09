@@ -1,11 +1,12 @@
 <script lang="ts">
   import { historyStore } from '$lib/stores/history.svelte.js';
-  import { selectedStore } from '$lib/stores/selected.svelte.js';
+  import { resultStore } from '$lib/stores/result.svelte.js';
   import { loadResult } from '$lib/services/history.js';
 
   async function select(filename: string) {
     const result = await loadResult(filename);
-    selectedStore.select(result);
+    resultStore.select(filename, result);
+    console.log();
   }
 
   function formatDate(created_at: string) {
@@ -21,15 +22,16 @@
   let micText = $derived(historyStore.items.filter((i) => i.result_type === 'mic-text'));
 </script>
 
-<div>
+<div class="history">
   {#if audioText.length > 0}
     <p>Audio → Text</p>
     <ul>
       {#each audioText as item}
         <li>
-          <button onclick={() => select(item.filename)}>
-            {item.title ?? formatDate(item.created_at)}
-          </button>
+          <button
+            onclick={() => select(item.filename)}
+            class:active={item.filename === resultStore.filename}
+          >{item.title ?? formatDate(item.created_at)}</button>
         </li>
       {/each}
     </ul>
@@ -40,9 +42,10 @@
     <ul>
       {#each micText as item}
         <li>
-          <button onclick={() => select(item.filename)}>
-            {item.title ?? formatDate(item.created_at)}
-          </button>
+          <button
+            onclick={() => select(item.filename)}
+            class:active={item.filename === resultStore.filename}
+          >{item.title ?? formatDate(item.created_at)}</button>
         </li>
       {/each}
     </ul>
@@ -52,3 +55,18 @@
     <p>No saved results yet.</p>
   {/if}
 </div>
+<style>
+ .history {
+   padding: 0 25px;
+   position: fixed;
+ }
+ button {
+	 border-radius: 4px;
+   border: none;
+	 background-color: transparent;
+   cursor: pointer;
+ }
+ button.active {
+	 background-color: oklch(90% 0.015 220);
+ }
+</style>

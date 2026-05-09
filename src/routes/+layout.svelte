@@ -24,7 +24,7 @@
 		padding: 0;
 	}
 	.wrapper {
-		background-color: #e5eff2;
+		background-color: oklch(94.5% 0.012 220);
 		height: 100dvh;
 		width: 100vw;
 		display: grid;

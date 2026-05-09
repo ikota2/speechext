@@ -44,15 +44,6 @@
       <span>{folderPath}</span>
     {/if}
   </div>
-
-  {#if files.length > 0}
-    <p>Selected files: {files.length}</p>
-    <ul>
-      {#each sortedNames as name}
-        <li>{name}</li>
-      {/each}
-    </ul>
-  {/if}
 </div>
 
 <style>

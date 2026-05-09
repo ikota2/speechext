@@ -1,7 +1,8 @@
 <script lang="ts">
   import Transcribe from '$lib/transcribe/Transcribe.svelte';
   import Record from '$lib/record/Record.svelte';
-  import { selectedStore } from '$lib/stores/selected.svelte.js';
+  import ResultCard from '$lib/ui/ResultCard.svelte';
+  import { resultStore } from '$lib/stores/result.svelte.js';
 </script>
 
 <div class="controls">
@@ -9,10 +10,13 @@
   <Record />
 </div>
 
-{#if selectedStore.result}
-  <div class="result">
-    <p>{selectedStore.result.full_text}</p>
-  </div>
+{#if resultStore.result}
+  <ResultCard
+      text={resultStore.result.full_text}
+      onsave={() => resultStore.save()}
+      saving={resultStore.saving}
+      saved={resultStore.isSaved}
+  />
 {/if}
 
 <style>

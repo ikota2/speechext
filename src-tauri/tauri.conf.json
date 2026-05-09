@@ -7,8 +7,8 @@
     "devUrl": "http://localhost:5173"
   },
   "productName": "speechext",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "version": "1.6.0",
+  "identifier": "com.ikota2.speechext",
   "app": {
     "windows": [
       {
