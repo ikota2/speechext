@@ -59,14 +59,22 @@
  .history {
    padding: 0 25px;
    position: fixed;
+   border-left: 1px solid darkslateblue;
+   height: 100%;
+ }
+ ul {
+   list-style: none;
  }
  button {
 	 border-radius: 4px;
    border: none;
 	 background-color: transparent;
    cursor: pointer;
+	 font-size: 24px;
+	 font-weight: 200;
  }
  button.active {
 	 background-color: oklch(90% 0.015 220);
+	 font-weight: 400;
  }
 </style>
