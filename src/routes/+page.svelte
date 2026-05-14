@@ -2,13 +2,29 @@
   import Transcribe from '$lib/transcribe/Transcribe.svelte';
   import Record from '$lib/record/Record.svelte';
   import ResultCard from '$lib/ui/ResultCard.svelte';
+  import {createTabs} from '$lib/ui/tabs.svelte.js';
   import { resultStore } from '$lib/stores/result.svelte.js';
+  import Tabs from '$lib/ui/Tabs.svelte';
+
+  const tabs = createTabs(2);
+  const tabItems = [
+    { title: 'Open', content: openTab },
+    { title: 'Record', content: recordTab },
+  ];
 </script>
 
-<div class="controls">
+<Tabs
+  {tabs}
+  items={tabItems}
+/>
+
+{#snippet openTab()}
   <Transcribe />
+{/snippet}
+
+{#snippet recordTab()}
   <Record />
-</div>
+{/snippet}
 
 {#if resultStore.result}
   <ResultCard
@@ -20,8 +36,5 @@
 {/if}
 
 <style>
-	.controls {
-		display: flex;
-		gap: 10px;
-	}
+
 </style>
