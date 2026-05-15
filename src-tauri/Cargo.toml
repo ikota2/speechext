@@ -20,6 +20,8 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+screencapturekit = { version = "2", features = ["macos_15_0"] }
+hound = "3"
 
 [features]
 # by default Tauri runs in production mode

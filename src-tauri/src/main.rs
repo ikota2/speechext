@@ -5,6 +5,7 @@
 
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+mod recording;
 use tauri::Emitter;
 
 #[derive(Clone, serde::Serialize)]
@@ -195,6 +196,10 @@ fn main() {
             save_result,
             list_results,
             load_result,
+            recording::start_recording,
+            recording::pause_recording,
+            recording::resume_recording,
+            recording::stop_recording,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
